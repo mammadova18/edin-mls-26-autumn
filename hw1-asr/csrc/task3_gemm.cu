@@ -33,6 +33,10 @@ __global__ void linear_tiled_kernel(const float* x, const float* w, const float*
     // ======================== BLANK 3.1 =========================
     // Load this thread's element of the x tile into xs. Use 0 outside x.
     // YOUR CODE HERE
+    int x_col = k0 + tx;
+    bool valid_x = row < M && x_col < K;
+    int x_index = row * K + x_col;
+    xs[ty][tx] = valid_x ? x[x_index] : 0.0f;
     // ============================================================
 
     // ======================== BLANK 3.2 =========================
@@ -40,11 +44,20 @@ __global__ void linear_tiled_kernel(const float* x, const float* w, const float*
     // w[blockIdx.x * TILE + n][k0 + k]. Use 0 outside w. Threads with consecutive
     // tx must read consecutive addresses of w.
     // YOUR CODE HERE
+    int w_row = blockIdx.x * TILE + ty;
+    int w_col = k0 + tx;
+    bool valid_w = w_row < N && w_col < K;
+    int w_index = w_row * K + w_col;
+    ws[ty][tx] = valid_w ? w[w_index] : 0.0f;
     // ============================================================
 
     // ======================== BLANK 3.3 =========================
     // Add this K step's contribution to acc.
     // YOUR CODE HERE
+    __syncthreads();
+    for (int q = 0; q < TILE; ++q)
+      acc += xs[ty][q] * ws[tx][q];
+    __syncthreads();
     // ============================================================
   }
 
@@ -52,6 +65,12 @@ __global__ void linear_tiled_kernel(const float* x, const float* w, const float*
   // Epilogue: for outputs inside y, add bias[col] (bias may be nullptr), apply
   // gelu() when act == ACT_GELU, and store.
   // YOUR CODE HERE
+  if (row < M && col < N) 
+  {
+    if (bias != nullptr) acc += bias[col];
+    if (act == ACT_GELU) acc = gelu(acc);
+    y[row * N + col] = acc;
+  }
   // ============================================================
 }
 
