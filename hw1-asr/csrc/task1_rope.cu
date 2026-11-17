@@ -73,6 +73,8 @@ __global__ void rope_kernel(float* q, float* k, const float* inv_freq, int seq_l
   //new_b  = b * cos(angle) + a * sin(angle)       b = x[i + half]
   float new_a = v[i] * cosf(angle) - v[i + half] * sinf(angle);
   float new_b = v[i + half] * cosf(angle) + v[i] * sinf(angle);
+  v[i] = new_a;
+  v[i + half] = new_b;
   // ============================================================
 }
 
